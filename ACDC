@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ACDC (Adhyaksa Critical Dose Calculator)</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #607087;
+      --line: #d9e1ec;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --soft: #eef6f5;
+      --danger: #b91c1c;
+      --shadow: 0 14px 35px rgba(23, 32, 51, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .app-shell {
+      width: min(1120px, calc(100% - 28px));
+      margin: 28px auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.55rem, 2.8vw, 2.35rem);
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      max-width: 840px;
+      font-size: 0.98rem;
+    }
+
+    .warning {
+      margin: 18px 0;
+      padding: 14px 16px;
+      border: 1px solid #f3c96b;
+      background: #fff7df;
+      color: #6b4500;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 400px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-panel,
+    .result-panel { padding: 18px; }
+
+    .result-panel {
+      position: sticky;
+      top: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .grid.single { grid-template-columns: 1fr; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #314057;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid #c6d0df;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.16);
+    }
+
+    .hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #e9eef5; color: #243047; }
+    .btn-secondary:hover { background: #dce5ef; }
+
+    .rate-box {
+      padding: 16px;
+      background: var(--soft);
+      border: 1px solid #b9dcda;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .rate-label {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .rate-value {
+      margin: 0;
+      color: var(--primary-dark);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .rate-unit {
+      color: #314057;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .result-list {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .result-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e6edf5;
+    }
+
+    .result-list span:first-child { color: var(--muted); }
+    .result-list span:last-child { font-weight: 700; text-align: right; }
+
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .note {
+      margin: 14px 0 0;
+      color: var(--danger);
+      font-size: 0.86rem;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 16px;
+      border: 1px dashed #b9c5d6;
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    #printSheet,
+    #kitirSheet { display: none; }
+
+    .print-result-sheet {
+      background: #fff;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .print-drug-title {
+      margin: 0 0 10mm;
+      padding: 6mm 4mm;
+      border: 2px solid #000;
+      text-align: center;
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .print-info-table,
+    .print-sign-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 9mm;
+      font-size: 14px;
+    }
+
+    .print-info-table th,
+    .print-info-table td,
+    .print-sign-table th,
+    .print-sign-table td {
+      border: 1.5px solid #000;
+      padding: 7px 9px;
+      vertical-align: top;
+    }
+
+    .print-info-table th,
+    .print-sign-table th {
+      width: 25%;
+      background: #f0f0f0;
+      text-align: left;
+      font-weight: 800;
+    }
+
+    .print-sign-table th {
+      width: 50%;
+      text-align: center;
+    }
+
+    .print-sign-space {
+      height: 38mm;
+      vertical-align: bottom !important;
+      text-align: center;
+    }
+
+    .print-rate-box {
+      margin-bottom: 9mm;
+      border: 2px solid #000;
+      padding: 7mm;
+      text-align: center;
+    }
+
+    .print-rate-box div:first-child {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 3mm;
+    }
+
+    .print-rate-box div:last-child {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .kitir-sheet {
+      background: #fff;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .kitir-header {
+      display: grid;
+      grid-template-columns: 34mm 1fr 42mm;
+      align-items: center;
+      gap: 5mm;
+      margin-bottom: 5mm;
+    }
+
+    .kitir-badge {
+      min-height: 20mm;
+      border: 2px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.1;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3mm;
+    }
+
+    .kitir-badge.alert {
+      border-color: #b91c1c;
+      background: #b91c1c;
+      color: #fff;
+    }
+
+    .kitir-badge.checker {
+      border-color: #111;
+      background: #f3f4f6;
+      color: #111;
+    }
+
+    .kitir-drug-title {
+      margin: 0;
+      text-align: center;
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .kitir-mixture {
+      border: 1.5px solid #000;
+      padding: 4mm;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 5mm;
+    }
+
+    .kitir-patient-grid,
+    .kitir-sign-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-bottom: 5mm;
+    }
+
+    .kitir-field,
+    .kitir-weight {
+      border: 1.5px solid #000;
+      padding: 3mm;
+      min-height: 16mm;
+      font-size: 13px;
+    }
+
+    .kitir-field span,
+    .kitir-weight span {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .kitir-field strong,
+    .kitir-weight strong {
+      font-size: 17px;
+    }
+
+    .kitir-weight {
+      width: 58%;
+      margin: 0 auto 5mm;
+      text-align: center;
+    }
+
+    .kitir-dose-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .kitir-dose-table th,
+    .kitir-dose-table td {
+      border: 1.5px solid #000;
+      padding: 7px 8px;
+      text-align: center;
+    }
+
+    .kitir-dose-table th {
+      background: #f0f0f0;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .result-panel { position: static; }
+    }
+
+    @media (max-width: 620px) {
+      .app-shell { width: min(100% - 20px, 1120px); margin: 18px auto; }
+      .grid, .signature-grid { grid-template-columns: 1fr; }
+      .form-panel, .result-panel { padding: 14px; }
+      .actions button { width: 100%; }
+      .result-list li { display: block; }
+      .result-list span { display: block; text-align: left !important; }
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { background: #fff; }
+      header, .warning, .form-panel, .actions, .result-panel > .section-title, #printSheet, #kitirSheet { display: none !important; }
+      .app-shell { width: 100%; margin: 0; }
+      .layout { display: block; }
+      .result-panel { box-shadow: none; border: 0; position: static; padding: 0; }
+      body.print-result #resultContent { display: none !important; }
+      body.print-result #printSheet { display: block !important; }
+      body.print-kitir #resultContent { display: none !important; }
+      body.print-kitir #kitirSheet { display: block !important; }
+      input { border: 0; border-bottom: 1px solid #000; border-radius: 0; min-height: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header>
+      <h1>ACDC (Adhyaksa Critical Dose Calculator)</h1>
+      <p class="subtitle">Kalkulator Dosis Obat ICU untuk Menghitung Laju Syringe Pump</p>
+    </header>
+
+    <div class="warning">
+      Dimohon untuk memverifikasi ulang minimal 2 staff dan tetap mengkonsulkan dengan tim Farmasi untuk dosis obat kritis. ACDC hanya alat untuk mempermudah staff rumah sakit dalam menjalankan tugasnya.
+    </div>
+
+    <section class="layout">
+      <form class="panel form-panel" id="doseForm">
+        <h2 class="section-title">Data Pasien</h2>
+        <div class="grid">
+          <div>
+            <label for="patientName">Nama pasien</label>
+            <input id="patientName" autocomplete="off" placeholder="Contoh: Tn. A" />
+          </div>
+          <div>
+            <label for="medicalRecord">Nomor RM</label>
+            <input id="medicalRecord" autocomplete="off" placeholder="Contoh: 123456" />
+          </div>
+          <div>
+            <label for="weight">Berat badan (kg)</label>
+            <input id="weight" type="number" min="0.1" step="0.1" placeholder="Contoh: 60" required />
+          </div>
+          <div>
+            <label for="targetDose">Target dosis</label>
+            <input id="targetDose" type="number" min="0" step="0.01" placeholder="Contoh: 0.1" required />
+            <div class="hint" id="doseUnitHint">Pilih obat untuk melihat satuan dosis.</div>
+          </div>
+        </div>
+
+        <h2 class="section-title">Obat dan Pengoplosan</h2>
+        <div class="grid single">
+          <div>
+            <label for="drugOption">Nama obat / opsi pengoplosan</label>
+            <select id="drugOption" required>
+              <option value="">Pilih obat dan pengoplosan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="fluid">Pelarut</label>
+            <select id="fluid">
+              <option value="NS">NS</option>
+              <option value="D5">D5</option>
+            </select>
+          </div>
+          <div>
+            <label for="rounding">Pembulatan rate</label>
+            <select id="rounding">
+              <option value="2">2 angka desimal</option>
+              <option value="1">1 angka desimal</option>
+              <option value="0">Bilangan bulat</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" type="submit">Hitung Rate</button>
+          <button class="btn-secondary" type="button" id="resetButton">Reset</button>
+        </div>
+      </form>
+
+      <aside class="panel result-panel">
+        <h2 class="section-title">Hasil Rate Jalan</h2>
+        <div id="resultContent" class="empty">Masukkan data pasien, pilih obat, lalu tekan Hitung Rate.</div>
+        <div id="printSheet"></div>
+        <div id="kitirSheet"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const drugOptions = [
+      { id: 'norepi-8-40', label: 'Norepinephrine 8 mg up to NS/D5 40 mL', drug: 'Norepinephrine', amount: 8, amountUnit: 'mg', amountMcg: 8000, volumeMl: 40, doseUnit: 'mcg/kg/menit' },
+      { id: 'norepi-8-50', label: 'Norepinephrine 8 mg up to NS/D5 50 mL', drug: 'Norepinephrine', amount: 8, amountUnit: 'mg', amountMcg: 8000, volumeMl: 50, doseUnit: 'mcg/kg/menit' },
+      { id: 'epi-8-40', label: 'Epinephrine 8 mg up to NS/D5 40 mL', drug: 'Epinephrine', amount: 8, amountUnit: 'mg', amountMcg: 8000, volumeMl: 40, doseUnit: 'mcg/kg/menit' },
+      { id: 'epi-8-50', label: 'Epinephrine 8 mg up to NS/D5 50 mL', drug: 'Epinephrine', amount: 8, amountUnit: 'mg', amountMcg: 8000, volumeMl: 50, doseUnit: 'mcg/kg/menit' },
+      { id: 'norepi-4-40', label: 'Norepinephrine 4 mg up to NS/D5 40 mL', drug: 'Norepinephrine', amount: 4, amountUnit: 'mg', amountMcg: 4000, volumeMl: 40, doseUnit: 'mcg/kg/menit' },
+      { id: 'norepi-4-50', label: 'Norepinephrine 4 mg up to NS/D5 50 mL', drug: 'Norepinephrine', amount: 4, amountUnit: 'mg', amountMcg: 4000, volumeMl: 50, doseUnit: 'mcg/kg/menit' },
+      { id: 'epi-4-40', label: 'Epinephrine 4 mg up to NS/D5 40 mL', drug: 'Epinephrine', amount: 4, amountUnit: 'mg', amountMcg: 4000, volumeMl: 40, doseUnit: 'mcg/kg/menit' },
+      { id: 'epi-4-50', label: 'Epinephrine 4 mg up to NS/D5 50 mL', drug: 'Epinephrine', amount: 4, amountUnit: 'mg', amountMcg: 4000, volumeMl: 50, doseUnit: 'mcg/kg/menit' },
+      { id: 'dopamine-200-40', label: 'Dopamin 200 mg up to NS/D5 40 mL', drug: 'Dopamin', amount: 200, amountUnit: 'mg', amountMcg: 200000, volumeMl: 40, doseUnit: 'mcg/kg/menit' },
+      { id: 'dobutamine-250-50', label: 'Dobutamin 250 mg up to NS/D5 50 mL', drug: 'Dobutamin', amount: 250, amountUnit: 'mg', amountMcg: 250000, volumeMl: 50, doseUnit: 'mcg/kg/menit' },
+      { id: 'dexmed-200-50', label: 'Dexmedetomidine 200 mcg up to NS/D5 50 mL', drug: 'Dexmedetomidine', amount: 200, amountUnit: 'mcg', amountMcg: 200, volumeMl: 50, doseUnit: 'mcg/kg/jam', usesHourlyDose: true }
+    ];
+
+    const form = document.getElementById('doseForm');
+    const drugSelect = document.getElementById('drugOption');
+    const doseUnitHint = document.getElementById('doseUnitHint');
+    const resultContent = document.getElementById('resultContent');
+    const printSheet = document.getElementById('printSheet');
+    const kitirSheet = document.getElementById('kitirSheet');
+    const resetButton = document.getElementById('resetButton');
+
+    let lastResult = null;
+
+    function populateOptions() {
+      drugOptions.forEach((option) => {
+        const element = document.createElement('option');
+        element.value = option.id;
+        element.textContent = option.label;
+        drugSelect.appendChild(element);
+      });
+    }
+
+    function formatNumber(value, decimals = 2) {
+      return Number(value).toLocaleString('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[char]));
+    }
+
+    function getSelectedDrug() {
+      return drugOptions.find((option) => option.id === drugSelect.value);
+    }
+
+    function updateDoseHint() {
+      const selected = getSelectedDrug();
+      doseUnitHint.textContent = selected
+        ? `Satuan target dosis: ${selected.doseUnit}`
+        : 'Pilih obat untuk melihat satuan dosis.';
+    }
+
+    function calculateRate(dose, weight, concentrationMcgPerMl, usesHourlyDose) {
+      const dosePerHour = usesHourlyDose ? dose * weight : dose * weight * 60;
+      return dosePerHour / concentrationMcgPerMl;
+    }
+
+    function collectData() {
+      const selected = getSelectedDrug();
+      const weight = Number(document.getElementById('weight').value);
+      const dose = Number(document.getElementById('targetDose').value);
+      const rounding = Number(document.getElementById('rounding').value);
+      const fluid = document.getElementById('fluid').value;
+
+      if (!selected || !weight || weight <= 0 || dose < 0) return null;
+
+      const concentrationMcgPerMl = selected.amountMcg / selected.volumeMl;
+      const rate = calculateRate(dose, weight, concentrationMcgPerMl, selected.usesHourlyDose);
+
+      return {
+        patientName: document.getElementById('patientName').value.trim(),
+        medicalRecord: document.getElementById('medicalRecord').value.trim(),
+        weight,
+        dose,
+        doseUnit: selected.doseUnit,
+        drug: selected.drug,
+        fluid,
+        amount: selected.amount,
+        amountUnit: selected.amountUnit,
+        volumeMl: selected.volumeMl,
+        usesHourlyDose: Boolean(selected.usesHourlyDose),
+        mixture: `${selected.amount} ${selected.amountUnit} up to ${fluid} ${selected.volumeMl} mL`,
+        concentrationMcgPerMl,
+        concentrationFormatted: formatNumber(concentrationMcgPerMl, 2),
+        rate,
+        rateFormatted: formatNumber(rate, rounding)
+      };
+    }
+
+    function getSignatureData() {
+      return {
+        giver: document.getElementById('giverName')?.value.trim() || '',
+        checker: document.getElementById('checkerName')?.value.trim() || ''
+      };
+    }
+
+    function renderResult(data) {
+      resultContent.className = 'print-area';
+      resultContent.innerHTML = `
+        <div class="rate-box">
+          <p class="rate-label">Rate syringe pump</p>
+          <p class="rate-value">${data.rateFormatted} <span class="rate-unit">mL/jam</span></p>
+        </div>
+        <ul class="result-list">
+          <li><span>Nama pasien</span><span>${escapeHtml(data.patientName) || '-'}</span></li>
+          <li><span>Nomor RM</span><span>${escapeHtml(data.medicalRecord) || '-'}</span></li>
+          <li><span>Berat badan</span><span>${formatNumber(data.weight, 1)} kg</span></li>
+          <li><span>Obat</span><span>${data.drug}</span></li>
+          <li><span>Pengoplosan</span><span>${data.mixture}</span></li>
+          <li><span>Pelarut</span><span>${data.fluid}</span></li>
+          <li><span>Konsentrasi</span><span>${data.concentrationFormatted} mcg/mL</span></li>
+          <li><span>Target dosis</span><span>${data.dose} ${data.doseUnit}</span></li>
+        </ul>
+        <div class="signature-grid">
+          <div>
+            <label for="giverName">Giver</label>
+            <input id="giverName" type="text" placeholder="Nama pemberi obat" />
+          </div>
+          <div>
+            <label for="checkerName">Checker</label>
+            <input id="checkerName" type="text" placeholder="Nama pemeriksa" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="printButton">Cetak Hasil</button>
+          <button class="btn-secondary" type="button" id="kitirButton">Cetak Kitir</button>
+        </div>
+        <p class="note">Wajib verifikasi ulang secara independen sebelum obat dijalankan.</p>
+      `;
+    }
+
+    function renderPrintResult(data) {
+      const signatures = getSignatureData();
+      printSheet.className = 'print-result-sheet';
+      printSheet.innerHTML = `
+        <h1 class="print-drug-title">${data.drug}</h1>
+        <table class="print-info-table">
+          <tbody>
+            <tr>
+              <th>Nama Pasien</th>
+              <td>${escapeHtml(data.patientName) || '-'}</td>
+              <th>Nomor Rekam Medis</th>
+              <td>${escapeHtml(data.medicalRecord) || '-'}</td>
+            </tr>
+            <tr>
+              <th>Berat Badan Pasien</th>
+              <td>${formatNumber(data.weight, 1)} kg</td>
+              <th>Konsentrasi</th>
+              <td>${data.concentrationFormatted} mcg/mL</td>
+            </tr>
+            <tr>
+              <th>Pengoplosan</th>
+              <td>${data.mixture}</td>
+              <th>Target Dosis</th>
+              <td>${data.dose} ${data.doseUnit}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="print-rate-box">
+          <div>Rate Syringe Pump</div>
+          <div>${data.rateFormatted} mL/jam</div>
+        </div>
+        <table class="print-sign-table">
+          <thead>
+            <tr>
+              <th>Giver</th>
+              <th>Checker</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="print-sign-space">${escapeHtml(signatures.giver) || 'Nama / Paraf'}</td>
+              <td class="print-sign-space">${escapeHtml(signatures.checker) || 'Nama / Paraf'}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">Wajib verifikasi ulang secara independen sebelum obat dijalankan.</p>
+      `;
+    }
+
+    function buildKitirRows(data) {
+      return Array.from({ length: 10 }, (_, index) => {
+        const dose = (index + 1) / 10;
+        const rate = calculateRate(dose, data.weight, data.concentrationMcgPerMl, data.usesHourlyDose);
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${formatNumber(dose, 1)} ${data.doseUnit}</td>
+            <td>${formatNumber(rate, 2)} mL/jam</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderKitir(data) {
+      const signatures = getSignatureData();
+      kitirSheet.className = 'kitir-sheet';
+      kitirSheet.innerHTML = `
+        <div class="kitir-header">
+          <div class="kitir-badge alert">High<br>Alert</div>
+          <h1 class="kitir-drug-title">${data.drug}</h1>
+          <div class="kitir-badge checker">Double<br>Checker</div>
+        </div>
+        <div class="kitir-mixture">Pengoplosan: ${data.mixture}</div>
+        <div class="kitir-patient-grid">
+          <div class="kitir-field">
+            <span>Nama Pasien</span>
+            <strong>${escapeHtml(data.patientName) || '-'}</strong>
+          </div>
+          <div class="kitir-field">
+            <span>Nomor RM</span>
+            <strong>${escapeHtml(data.medicalRecord) || '-'}</strong>
+          </div>
+        </div>
+        <div class="kitir-weight">
+          <span>Berat Badan Pasien</span>
+          <strong>${formatNumber(data.weight, 1)} kg</strong>
+        </div>
+        <div class="kitir-sign-grid">
+          <div class="kitir-field">
+            <span>Checker</span>
+            <strong>${escapeHtml(signatures.checker) || '-'}</strong>
+          </div>
+          <div class="kitir-field">
+            <span>Giver</span>
+            <strong>${escapeHtml(signatures.giver) || '-'}</strong>
+          </div>
+        </div>
+        <table class="kitir-dose-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Target Dosis</th>
+              <th>Rate Syringe Pump</th>
+            </tr>
+          </thead>
+          <tbody>${buildKitirRows(data)}</tbody>
+        </table>
+        <p class="note">Wajib verifikasi ulang secara independen sebelum obat dijalankan.</p>
+      `;
+    }
+
+    function updateCalculation() {
+      const data = collectData();
+      if (!data) {
+        resultContent.className = 'empty';
+        resultContent.textContent = 'Mohon lengkapi pilihan obat, berat badan, dan target dosis dengan benar.';
+        return null;
+      }
+      lastResult = data;
+      renderResult(data);
+      renderPrintResult(data);
+      renderKitir(data);
+      return data;
+    }
+
+    function preparePrint(mode) {
+      const data = collectData();
+      if (!data) return;
+      lastResult = data;
+      renderPrintResult(data);
+      renderKitir(data);
+      document.body.classList.remove('print-result', 'print-kitir');
+      document.body.classList.add(mode);
+      window.print();
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      updateCalculation();
+    });
+
+    resetButton.addEventListener('click', () => {
+      form.reset();
+      lastResult = null;
+      updateDoseHint();
+      printSheet.innerHTML = '';
+      printSheet.className = '';
+      kitirSheet.innerHTML = '';
+      kitirSheet.className = '';
+      resultContent.className = 'empty';
+      resultContent.textContent = 'Masukkan data pasien, pilih obat, lalu tekan Hitung Rate.';
+    });
+
+    resultContent.addEventListener('click', (event) => {
+      if (!event.target) return;
+      if (event.target.id === 'printButton') preparePrint('print-result');
+      if (event.target.id === 'kitirButton') preparePrint('print-kitir');
+    });
+    window.addEventListener('afterprint', () => document.body.classList.remove('print-result', 'print-kitir'));
+    drugSelect.addEventListener('change', updateDoseHint);
+
+    populateOptions();
+    updateDoseHint();
+  </script>
+</body>
+</html>
